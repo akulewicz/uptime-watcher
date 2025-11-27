@@ -1,0 +1,18 @@
+{
+    "sites": [
+        {
+            "url": "https://www.wp.pl"
+        },
+        {
+            "url": "https://www.onet.pl"
+        },
+        {
+            "url": "https://kulewicz.net"
+        }
+    ],
+    "host": "mail32.mydevil.net",
+    "port": 465,
+    "username": "user@test.xyz",
+    "password": "secretPassword34",
+    "receiver": "receiver@test.xyz"
+}
