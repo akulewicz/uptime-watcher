@@ -6,7 +6,7 @@ import ssl
 import smtplib
 from email.message import EmailMessage
 
-def send_email(message, config):
+def send_email(message, config, url):
     host = config["host"]
     port = config["port"]
     username = config["username"]
@@ -16,7 +16,7 @@ def send_email(message, config):
     msg = EmailMessage()
     msg["From"] = username
     msg["To"] = receiver
-    msg["Subject"] = "Informacja dotycząca działania strony"
+    msg["Subject"] = f"Informacja dotycząca działania strony {url}"
     msg.set_content(message)
     context = ssl.create_default_context()
 
@@ -34,34 +34,43 @@ def save_state(path, data):
     with open(path, "w") as f:
         json.dump(data, f)
 
-def check_websites():
-    config = load_json("config.json")
-    state = load_json("status.json")
-    sites = config['sites']
+def get_site_status(url):
+    try:
+        response = requests.get(url, timeout=10)
+        return "up" if response.status_code == 200 else "down"
+    except Exception:
+        return "down"    
+    
+def clean_state(state, sites):
+    valid_urls = {site["url"] for site in sites}
+    return {url: status for url, status in state.items() if url in valid_urls}
 
+def check_websites(config, state):
+    
+    sites = config['sites']
+    state = clean_state(state, sites)
     for site in sites:
         url = site['url']
-        try:
-            response = requests.get(url, timeout=10)
-            current_status = "up" if response.status_code == 200 else "down"
-        except Exception:
-            current_status = "down"
+        current_status = get_site_status(url)
 
         if url not in state:
             if current_status == "down":
-                send_email(f'Strona  {url} nie działa', config)
+                send_email(f'Strona  {url} nie działa', config, url)
             state[url] = current_status
             continue
         
         if current_status != state[url]:
             if current_status == "down":
-                send_email(f"Strona {url} nie działa", config)
+                send_email(f"Strona {url} nie działa", config, url)
             else:
-                send_email(f"Strona {url} już działa", config)
+                send_email(f"Strona {url} już działa", config, url)
+            state[url] = current_status
     save_state("status.json", state)
 
 
 if __name__ == "__main__":
+    config = load_json("config.json")
     while True:
-        check_websites()
+        state = load_json("status.json")
+        check_websites(config, state)
         time.sleep(60)
