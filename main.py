@@ -7,8 +7,13 @@ import smtplib
 import logging
 from email.message import EmailMessage
 
+BASE_DIR = os.path.dirname(__file__)
+STATUS_FILE = os.path.join(BASE_DIR, "status.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+LOG_FILE = os.path.join(BASE_DIR, "logs/monitor.log")
+
 logging.basicConfig(
-    filename="logs/monitor.log",
+    filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s"
 )
@@ -93,8 +98,8 @@ def check_websites(config, state):
 
 
 if __name__ == "__main__":
-    config = load_json("config.json")
+    config = load_json(CONFIG_FILE)
     while True:
-        state = load_json("status.json")
+        state = load_json(STATUS_FILE)
         check_websites(config, state)
         time.sleep(60)
