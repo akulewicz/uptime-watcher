@@ -19,6 +19,12 @@ logging.basicConfig(
 )
 
 def send_email(message, config, url):
+    """Wysyła powiadomienie e-mail o zmianie statusu strony.
+
+    message — treść wiadomości
+    config — dane konfiguracyjne SMTP (host, użytkownik, hasło itd.)
+    url — adres strony, której dotyczy powiadomienie
+    """
     host = config["host"]
     port = config["port"]
     username = config["username"]
@@ -38,6 +44,9 @@ def send_email(message, config, url):
 
 
 def load_json(path):
+    """Wczytuje dane z pliku JSON.
+    Zwraca pusty słownik, jeśli plik nie istnieje (np. pierwszy start programu).
+    """
     if not os.path.exists(path):
         return {}
     with open(path) as f:
@@ -45,11 +54,15 @@ def load_json(path):
 
 
 def save_state(path, data):
+    """Zapisuje bieżący stan stron do pliku JSON."""
     with open(path, "w") as f:
         json.dump(data, f)
 
 
 def get_site_status(url):
+    """Sprawdza, czy witryna odpowiada kodem 200.
+    Zwraca 'up' jeśli strona działa, inaczej 'down'.
+    """
     try:
         response = requests.get(url, timeout=10)
         return "up" if response.status_code == 200 else "down"
@@ -58,11 +71,19 @@ def get_site_status(url):
 
 
 def clean_state(state, sites):
+    """Usuwa ze stanu adresy stron, które zostały usunięte z config.json.
+    Dzięki temu stan jest zawsze zgodny z bieżącą listą stron.
+    """
     valid_urls = {site["url"] for site in sites}
     return {url: status for url, status in state.items() if url in valid_urls}
 
 
 def create_status_message(url, old_status, new_status):
+    """Tworzy komunikat opisujący zmianę statusu:
+    - jeśli strona padła → 'Strona X nie działa.'
+    - jeśli wróciła → 'Strona X już działa.'
+    Jeśli zmian nie ma, zwraca None.
+    """
     if old_status is None:
         if new_status == "down":
             return f"Strona {url} nie działa."
@@ -94,12 +115,11 @@ def check_websites(config, state):
 
         state[url] = current_status
 
-    save_state("status.json", state)
+    save_state(STATUS_FILE, state)
 
 
 if __name__ == "__main__":
     config = load_json(CONFIG_FILE)
-    while True:
-        state = load_json(STATUS_FILE)
-        check_websites(config, state)
-        time.sleep(60)
+    state = load_json(STATUS_FILE)
+    check_websites(config, state)
+    
